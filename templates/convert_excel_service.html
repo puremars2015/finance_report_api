@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload and Download</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px;
+        }
+        .container {
+            max-width: 500px;
+            margin: auto;
+        }
+        .file-input, .file-name-input {
+            margin-bottom: 20px;
+        }
+        .message {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>檔案轉換</h1>
+        <input type="file" id="fileInput" class="file-input">
+        <button onclick="uploadFile()">上傳需要轉換的檔案</button>
+        <div class="message" id="uploadMessage"></div>
+    </div>
+
+    <script>
+        function uploadFile() {
+            var fileInput = document.getElementById('fileInput');
+            var file = fileInput.files[0];
+
+            if (!file) {
+                document.getElementById('uploadMessage').innerText = 'No file selected';
+                return;
+            }
+
+            var formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/upload-source', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById('uploadMessage').innerText = 'Error: ' + data.error;
+                } else {
+                    //document.getElementById('uploadMessage').innerText = 'Success: ' + data.message + ', Filename: ' + data.filename;
+                    document.getElementById('uploadMessage').innerText = '檔案上傳成功,請等待下載轉換後的檔案';
+                    downloadFile();
+                }
+            })
+            .catch(error => {
+                document.getElementById('uploadMessage').innerText = 'Upload failed';
+            });
+        }
+
+        function downloadFile() {
+            fetch('/download-converted', {
+                method: 'GET'
+            })
+            .then(response => {
+                if (response.status === 404) {
+                    document.getElementById('downloadMessage').innerText = 'Error: File not found';
+                } else {
+                    return response.blob();
+                }
+            })
+            .then(blob => {
+                if (blob) {
+                    var url = window.URL.createObjectURL(blob);
+                    var a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = 'converted.xlsx';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.getElementById('downloadMessage').innerText = 'Download started';
+                }
+            })
+            .catch(error => {
+                document.getElementById('downloadMessage').innerText = 'Download failed';
+            });
+        }
+    </script>
+</body>
+</html>
